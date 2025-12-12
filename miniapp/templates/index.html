@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TGBot Monitor</title>
+    
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 16px;
+            padding-bottom: 24px;
+        }
+        
+        .header {
+            margin-bottom: 24px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #999);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            border-radius: 12px;
+            padding: 16px;
+        }
+        
+        .stat-card.full {
+            grid-column: 1 / -1;
+        }
+        
+        .stat-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #999);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--tg-theme-text-color, #000);
+        }
+        
+        .stat-sub {
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #999);
+            margin-top: 4px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 24px;
+            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 8px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3390ec 0%, #58a6ff 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            transition: width 0.3s ease;
+        }
+        
+        .button {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            margin-bottom: 12px;
+            transition: opacity 0.2s;
+        }
+        
+        .button:active {
+            opacity: 0.8;
+        }
+        
+        .button.secondary {
+            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            color: var(--tg-theme-text-color, #000);
+        }
+        
+        .last-update {
+            text-align: center;
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #999);
+            margin-top: 16px;
+        }
+        
+        .timestamp {
+            font-weight: 600;
+            color: var(--tg-theme-link-color, #3390ec);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Статистика</h1>
+        <p>Мониторинг системы саммаризации</p>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">💬</div>
+            <div class="stat-label">Всего</div>
+            <div class="stat-value">{{ stats.total }}</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div class="stat-label">Обработано</div>
+            <div class="stat-value">{{ stats.analyzed }}</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-label">Ожидают</div>
+            <div class="stat-value">{{ stats.unsummarized }}</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div class="stat-label">Прогресс</div>
+            <div class="stat-value">{{ stats.percentage }}%</div>
+        </div>
+        
+        <div class="stat-card full">
+            <div class="stat-label">Прогресс обработки</div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{ stats.percentage }}%">
+                    {{ stats.percentage }}%
+                </div>
+            </div>
+            <div class="stat-sub">
+                {{ stats.analyzed }} из {{ stats.total }} сообщений
+            </div>
+        </div>
+        
+        <div class="stat-card full">
+            <div class="stat-icon">🕐</div>
+            <div class="stat-label">Последняя саммаризация</div>
+            <div class="stat-value" style="font-size: 16px;">
+                {{ stats.last_summary|format_datetime }}
+            </div>
+        </div>
+    </div>
+    
+    <a href="/messages" class="button">
+        📝 Посмотреть все сообщения
+    </a>
+    
+    <button class="button secondary" onclick="refreshData()">
+        🔄 Обновить данные
+    </button>
+    
+    <div class="last-update">
+        Обновлено: <span class="timestamp" id="update-time"></span>
+    </div>
+    
+    <script>
+        // Инициализация Telegram WebApp
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation();
+        
+        // Устанавливаем цвет заголовка
+        tg.setHeaderColor('bg_color');
+        
+        // Показываем текущее время обновления
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('update-time').textContent = now.toLocaleTimeString('ru-RU');
+        }
+        
+        updateTime();
+        
+        // Функция обновления данных
+        function refreshData() {
+            tg.showConfirm('Обновить статистику?', (confirmed) => {
+                if (confirmed) {
+                    location.reload();
+                }
+            });
+        }
+        
+        // Показываем что приложение готово
+        tg.ready();
+        
+        // Автообновление каждые 30 секунд
+        setInterval(() => {
+            location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Сообщения</title>
+    
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 16px;
+            padding-bottom: 24px;
+        }
+        
+        .header {
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #999);
+        }
+        
+        .message-card {
+            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .message-sender {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--tg-theme-link-color, #3390ec);
+        }
+        
+        .message-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .message-status.processed {
+            background: rgba(52, 199, 89, 0.15);
+            color: #34c759;
+        }
+        
+        .message-status.pending {
+            background: rgba(255, 159, 10, 0.15);
+            color: #ff9f0a;
+        }
+        
+        .message-text {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 8px;
+            color: var(--tg-theme-text-color, #000);
+        }
+        
+        .message-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #999);
+        }
+        
+        .message-date {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .message-id {
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 20px 0;
+        }
+        
+        .pagination a,
+        .pagination span {
+            padding: 8px 12px;
+            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--tg-theme-text-color, #000);
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .pagination .active {
+            background: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+        
+        .pagination .disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        
+        .button {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            margin-top: 16px;
+            transition: opacity 0.2s;
+        }
+        
+        .button:active {
+            opacity: 0.8;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--tg-theme-hint-color, #999);
+        }
+        
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .total-count {
+            text-align: center;
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #999);
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📝 Все сообщения</h1>
+        <p>История сообщений из базы</p>
+    </div>
+    
+    <div class="total-count">
+        Всего найдено: <strong>{{ total }}</strong> сообщений
+    </div>
+    
+    {% if messages %}
+        {% for msg in messages %}
+        <div class="message-card">
+            <div class="message-header">
+                <div class="message-sender">{{ msg.sender or 'Неизвестно' }}</div>
+                {% if msg.summarized == 1 %}
+                    <div class="message-status processed">✓ Обработано</div>
+                {% else %}
+                    <div class="message-status pending">⏳ Ожидает</div>
+                {% endif %}
+            </div>
+            
+            <div class="message-text">
+                {{ msg.text|truncate_text(100) }}
+            </div>
+            
+            <div class="message-footer">
+                <div class="message-date">
+                    🕐 {{ msg.date|format_datetime }}
+                </div>
+                <div class="message-id">#{{ msg.id }}</div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        {% if total > 30 %}
+        <div class="pagination">
+            {% if page > 1 %}
+                <a href="?page={{ page - 1 }}">← Назад</a>
+            {% else %}
+                <span class="disabled">← Назад</span>
+            {% endif %}
+            
+            <span class="active">{{ page }}</span>
+            <span>из {{ total_pages }}</span>
+            
+            {% if page < total_pages %}
+                <a href="?page={{ page + 1 }}">Вперёд →</a>
+            {% else %}
+                <span class="disabled">Вперёд →</span>
+            {% endif %}
+        </div>
+        
+        <div class="total-count">
+            Показано {{ messages|length }} из {{ total }}
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <div class="icon">📭</div>
+            <p>Нет сообщений в базе данных</p>
+        </div>
+    {% endif %}
+    
+    <a href="/" class="button">
+        ← Назад к статистике
+    </a>
+    
+    <script>
+        // Инициализация Telegram WebApp
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        
+        // Устанавливаем цвет заголовка
+        tg.setHeaderColor('bg_color');
+        
+        // Кнопка "Назад" в Telegram интерфейсе
+        tg.BackButton.show();
+        tg.BackButton.onClick(function() {
+            window.location.href = '/';
+        });
+        
+        // Показываем что приложение готово
+        tg.ready();
+    </script>
+</body>
+</html>
+
